@@ -23,11 +23,17 @@ def setup_parser():
                         help = 'path to rle file',
                         )
     parser.add_argument('target',
-                        action = 'store',
                         nargs = '?',
                         default = '',
                         help = "optional: path to image file, extension" \
                                + " determines image format",
+                        )
+    parser.add_argument('-s',
+                        '--scale',
+                        default = 1,
+                        type = int,
+                        help = 'scale factor',
+                        metavar = 'scale',
                         )
     return parser
 
@@ -116,10 +122,11 @@ def get_paths(source, target):
         exit_unless(False)
 
 
-def make_image(source, target):
+def make_image(source, target, scale):
     rle = RLE(source)
+    (x, y) = rle.dimensions
 
-    im = Image.new('RGBA', rle.dimensions, 'white')
+    im = Image.new('RGBA', (scale * x, scale * y), 'white')
     draw = ImageDraw.Draw(im)
 
     xp = 0
@@ -128,12 +135,12 @@ def make_image(source, target):
     while symbol != '!':
         if symbol == '$':
             xp = 0
-            yp += 1
+            yp += scale
         elif symbol == 'b':
-            xp += length
+            xp += scale * length
         else:
-            draw.line([(xp, yp), (xp + length - 1, yp)], 'black')
-            xp += length
+            draw.rectangle((xp, yp, xp + scale * length - 1, yp + scale - 1), 'black')
+            xp += scale * length
         (symbol, length) = rle.next_sequence()
 
     im.save(target)
@@ -142,10 +149,16 @@ def make_image(source, target):
 def main(argv):
     parser = setup_parser()
     parsed_args = parser.parse_args(argv)
+
     source = parsed_args.source
     target = parsed_args.target
+
+    scale = parsed_args.scale
+    if scale < 1:
+        exit('Scale factor cannot be less than 1.')
+
     (source, target) =  get_paths(source, target)
-    make_image(source, target)
+    make_image(source, target, scale)
 
 
 if __name__ == '__main__':
