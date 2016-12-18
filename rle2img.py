@@ -1,4 +1,36 @@
+from PIL import Image, ImageDraw
+import argparse
+import logging
+import os
 import re
+import sys
+
+
+def setup_parser():
+    class Parser(argparse.ArgumentParser):
+        def error(self, message):
+            # Superclass only report error message.
+            # Override to also show print help.
+            self._print_message(('%s: error: %s\n\n') % (self.prog, message))
+            self.print_help(sys.stderr)
+            self.exit(2)
+
+    parser = Parser(description = "convert a Conway's Game of Life rle file" \
+                                  + " to an image file",
+                    formatter_class = argparse.RawTextHelpFormatter,
+                    )
+    parser.add_argument('source',
+                        help = 'path to rle file',
+                        )
+    parser.add_argument('target',
+                        action = 'store',
+                        nargs = '?',
+                        default = '',
+                        help = "optional: path to image file, extension" \
+                               + " determines image format",
+                        )
+    return parser
+
 
 class Configuration:
     @staticmethod
@@ -61,3 +93,39 @@ class RLE(Configuration):
             if len(specification) == 1:
                 specification = '1' + specification
             return (specification[-1], int(specification[0:-1]))
+
+
+def get_paths(source, target):
+    def exit_unless(success):
+        if not success: exit('File error.')
+
+    if os.path.isfile(source):
+        (source_path, source_file) = os.path.split(source)
+        (target_path, target_file) = os.path.split(target)
+
+        if target_path == '':
+            target_path = source_path
+
+        if target_file == '':
+            (source_root, source_ext) = os.path.splitext(source_file)
+            target_file = source_root + '.png'
+
+        target = os.path.join(target_path, target_file)
+        return (source, target)
+    else:
+        exit_unless(False)
+
+
+
+
+
+def main(argv):
+    parser = setup_parser()
+    parsed_args = parser.parse_args(argv)
+    source = parsed_args.source
+    target = parsed_args.target
+    (source, target) =  get_paths(source, target)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
