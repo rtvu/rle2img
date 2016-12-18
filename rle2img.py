@@ -116,7 +116,27 @@ def get_paths(source, target):
         exit_unless(False)
 
 
+def make_image(source, target):
+    rle = RLE(source)
 
+    im = Image.new('RGBA', rle.dimensions, 'white')
+    draw = ImageDraw.Draw(im)
+
+    xp = 0
+    yp = 0
+    (symbol, length) = rle.next_sequence()
+    while symbol != '!':
+        if symbol == '$':
+            xp = 0
+            yp += 1
+        elif symbol == 'b':
+            xp += length
+        else:
+            draw.line([(xp, yp), (xp + length - 1, yp)], 'black')
+            xp += length
+        (symbol, length) = rle.next_sequence()
+
+    im.save(target)
 
 
 def main(argv):
@@ -125,6 +145,7 @@ def main(argv):
     source = parsed_args.source
     target = parsed_args.target
     (source, target) =  get_paths(source, target)
+    make_image(source, target)
 
 
 if __name__ == '__main__':
